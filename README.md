@@ -2,7 +2,7 @@
 Get the Code
 ------------
 esp_mqtt (https://github.com/tuanpmt/esp_mqtt) is a submodule. 
-`git clone --recursive`
+```git clone --recursive```
 
 Build
 -----
