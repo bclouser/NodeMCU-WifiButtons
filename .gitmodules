@@ -1,3 +1,0 @@
-[submodule "esp_mqtt"]
-	path = esp_mqtt
-	url = https://github.com/tuanpmt/esp_mqtt
