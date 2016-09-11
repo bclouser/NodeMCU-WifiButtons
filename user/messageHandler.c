@@ -3,8 +3,7 @@
 #include "json/jsonparse.h"
 #include "json/jsontree.h"
 #include "osapi.h"
-
-#include "servo.h"
+#include "led.h"
 
 /*This function needs to be cleaned up. I don't like that we are 
  instructing the servos from within this function. Maybe do it in interface up one level?

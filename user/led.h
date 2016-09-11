@@ -37,7 +37,7 @@ typedef enum {
 	e_ServoNum2
 } ServoNum;
 
-void initServo();
+void initLeds();
 bool setServo(ServoNum servoNum, uint8 dutyPercent);
 
 #endif
