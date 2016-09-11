@@ -34,7 +34,12 @@ FLAVOR = debug
 TARGET		?= esp_mqtt
 
 # which modules (subdirectories) of the project to include in compiling
-USER_MODULES		= user driver mqtt modules
+ifeq ($(EXCLUDE_USER),true)
+	USER_MODULES := driver mqtt modules
+else
+	USER_MODULES := user driver mqtt modules
+endif
+
 USER_INC				= include
 USER_LIB				=
 
@@ -205,9 +210,9 @@ $(TARGET_OUT): $(APP_AR)
 	$(vecho) "LD $@"
 	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(SDK_LIBS) $(APP_AR) -Wl,--end-group -o $@
 
-$(APP_AR): $(OBJ)
+$(APP_AR): checkdirs $(OBJ)
 	$(vecho) "AR $@"
-	$(Q) $(AR) cru $@ $^
+	$(Q) $(AR) cru $@ $(OBJ)
 
 flash:
 	$(ESPTOOL) $(ESPTOOL_OPTS) $(ESPTOOL_WRITE)
@@ -224,5 +229,6 @@ openport:
 
 clean:
 	$(Q) rm -rf $(BUILD_DIR)
+	$(Q) rm -rf $(APP_AR)
 	$(Q) rm -rf $(FIRMWARE_BASE)
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
