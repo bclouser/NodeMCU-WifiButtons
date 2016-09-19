@@ -43,7 +43,7 @@ ESP_MQTT_LIB := esp_mqtt/build/esp_mqtt.a
 
 
 SDK_LIBDIR = lib
-SDK_LIBS = c gcc phy pp net80211 wpa main lwip crypto ssl json driver
+SDK_LIBS = c gcc phy pp net80211 wpa main lwip crypto ssl json driver pwm
 SDK_INC = include include/json
 
 

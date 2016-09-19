@@ -16,9 +16,10 @@
 #include "messageHandler.h"
 #include "mqtt.h"
 #include "wifi.h"
-//#include "config.h"
+#include "button.h"
 #include "debug.h"
 
+// Application global
 MQTT_Client mqttClient;
 static void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status)
 {
@@ -65,7 +66,8 @@ static void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint
   topicBuf[topic_len] = 0;
   os_memcpy(dataBuf, data, data_len);
   dataBuf[data_len] = 0;
-  os_printf("Receive topic: %s, data: %s \r\n", topicBuf, dataBuf);
+  os_printf("Received topic: %s, data: %s \r\n", topicBuf, dataBuf);
+  handleMessage(dataBuf, data_len);
   os_free(topicBuf);
   os_free(dataBuf);
 }
@@ -86,34 +88,41 @@ void ICACHE_FLASH_ATTR print_info()
 
 static void ICACHE_FLASH_ATTR app_init(void)
 {
-  uart_init(BIT_RATE_115200, BIT_RATE_115200);
-  //print_info();
-  //MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, DEFAULT_SECURITY);
-  MQTT_InitConnection(&mqttClient, "192.168.0.199", 1883, 0);
+    uart_init(BIT_RATE_115200, BIT_RATE_115200);
+    //print_info();
+    //MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, DEFAULT_SECURITY);
+    MQTT_InitConnection(&mqttClient, "192.168.0.199", 1883, 0);
 
-  //MQTT_InitClient(&mqttClient, MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, MQTT_CLEAN_SESSION);
-  MQTT_InitClient(&mqttClient, "buttons", "", "", 120, 1);
-  MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
-  MQTT_OnConnected(&mqttClient, mqttConnectedCb);
-  MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
-  MQTT_OnPublished(&mqttClient, mqttPublishedCb);
-  MQTT_OnData(&mqttClient, mqttDataCb);
+    //MQTT_InitClient(&mqttClient, MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, MQTT_CLEAN_SESSION);
+    MQTT_InitClient(&mqttClient, "buttons", "", "", 120, 1);
+    MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+    MQTT_OnConnected(&mqttClient, mqttConnectedCb);
+    MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
+    MQTT_OnPublished(&mqttClient, mqttPublishedCb);
+    MQTT_OnData(&mqttClient, mqttDataCb);
 
-  // WIFI SETUP
-  wifi_station_set_hostname( "buttons" );
-  wifi_set_opmode_current( STATION_MODE );
+    // WIFI SETUP
+    wifi_station_set_hostname( "buttons" );
+    wifi_set_opmode_current( STATION_MODE );
 
-  // Initialize the GPIO subsystem.
-  // Apparently this just needs to be called. Odd
-  gpio_init();
+    // Initialize the GPIO subsystem.
+    // Apparently this just needs to be called. Odd
+    gpio_init();
 
-  WIFI_Connect(WIFI_SSID, WIFI_PASSWD, wifiConnectCb);
+    WIFI_Connect(WIFI_SSID, WIFI_PASSWD, wifiConnectCb);
 
-  // Init pwm modules which control the servo
-  initLeds();
+    // Init pwm modules which control the servo
+    os_printf("Initializing LEDS\n");
+    initLeds();
+    //setLed(e_ledNum2, 40);
+
+    os_printf("Initializing buttons\n");
+    initButtons();
+    //startBlinkTimer();
+    //setLed(e_ledNum2, 0);
 }
 
-void user_init(void)
+void ICACHE_FLASH_ATTR user_init(void)
 {
     system_init_done_cb(app_init);
 }

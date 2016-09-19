@@ -3,7 +3,9 @@
 
 #include "ets_sys.h"
 
-bool handleMessage(char* messageBuf);
+bool handleMessage(char* messageBuf, uint32_t len);
+
+bool publishMessage();
 
 
 #endif
