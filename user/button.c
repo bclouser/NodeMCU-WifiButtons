@@ -7,10 +7,12 @@
 #include "messageHandler.h"
 #include "led.h"
 
-LOCAL os_timer_t link_led_timer;
-LOCAL os_timer_t butttonDebounceTimer;
-LOCAL uint8 link_led_level = 0;
-static uint8 buttonDebounceIndexParam = 0;
+#define BUTTON_PRESS_DEBOUNCE_MS 120
+#define BUTTON_DEPRESS_DEBOUNCE_MS 400
+
+
+//LOCAL os_timer_t butttonDebounceTimer;
+static uint8 buttonDebounceIndexParams[NUMBER_OF_BUTTONS] = {0};
 
 // Topics and messages into predefined arrays so we don't have to churn
 // through strings in critical sections
@@ -29,24 +31,25 @@ struct ButtonInfo {
 	uint8 ioNum;
 	uint32 ioMux;
 	uint8 ioFunc;
+	os_timer_t buttonDebounceTimer;
 };
 
 // just a container of button info so we can iterate through em
 LOCAL struct ButtonInfo buttons[NUMBER_OF_BUTTONS] = {
-	{BUTTON1_IO_NUM, BUTTON1_IO_MUX, BUTTON1_IO_FUNC},
-	{BUTTON2_IO_NUM, BUTTON2_IO_MUX, BUTTON2_IO_FUNC},
-	{BUTTON3_IO_NUM, BUTTON3_IO_MUX, BUTTON3_IO_FUNC},
-	{BUTTON4_IO_NUM, BUTTON4_IO_MUX, BUTTON4_IO_FUNC}
+	{BUTTON1_IO_NUM, BUTTON1_IO_MUX, BUTTON1_IO_FUNC, {0}},
+	{BUTTON2_IO_NUM, BUTTON2_IO_MUX, BUTTON2_IO_FUNC, {0}},
+	{BUTTON3_IO_NUM, BUTTON3_IO_MUX, BUTTON3_IO_FUNC, {0}},
+	{BUTTON4_IO_NUM, BUTTON4_IO_MUX, BUTTON4_IO_FUNC, {0}}
 };
 
 void ICACHE_FLASH_ATTR buttonDebounceCallback(uint8* buttonIndex){
 	// turn off timer
-	os_timer_disarm(&butttonDebounceTimer);
+	os_timer_disarm(&buttons[*buttonIndex].buttonDebounceTimer);
 
 	// if input still high, assume valid button press, send out message.
 	// POSITVE EDGE
 	if (GPIO_INPUT_GET(GPIO_ID_PIN(buttons[*buttonIndex].ioNum)) == 1 ) {
-		os_printf("DBNC: PIN%d HIGH\n", *buttonIndex+1);
+		//os_printf("DEBOUNCE: PIN%d HIGH\n", *buttonIndex+1);
 		// each button index correlates to a topic
 		publishMessage(topics[*buttonIndex], toggleCommandStr, messageLen);
 
@@ -56,7 +59,7 @@ void ICACHE_FLASH_ATTR buttonDebounceCallback(uint8* buttonIndex){
 	}
 	// NEGATIVE EDGE
 	else { 
-		os_printf("DBNC: PIN%d LOW\n", *buttonIndex+1);
+		//os_printf("DEBOUNCE: PIN%d LOW\n", *buttonIndex+1);
 		// This is the very last step, button has been let up and back to level 0.
 		// So we restore the interrupt to looking for positive edge.
 		gpio_pin_intr_state_set(GPIO_ID_PIN(buttons[*buttonIndex].ioNum), GPIO_PIN_INTR_POSEDGE);
@@ -81,18 +84,24 @@ void ICACHE_FLASH_ATTR buttonISR(void){
 			if (GPIO_INPUT_GET(GPIO_ID_PIN(buttons[i].ioNum)) == 1 ) {
 				os_printf("ISR: Got posEdge interrupt on button%d\n", i+1);
 				// store the current index in a global var so we can access it from timeout function
-				buttonDebounceIndexParam = i;
-				os_timer_setfn(&butttonDebounceTimer, (os_timer_func_t *)buttonDebounceCallback, &buttonDebounceIndexParam);
-				os_timer_arm(&butttonDebounceTimer, 120, 0);
+				buttonDebounceIndexParams[i] = i;
+				os_timer_setfn(&buttons[i].buttonDebounceTimer, 
+								(os_timer_func_t *)buttonDebounceCallback, 
+								&buttonDebounceIndexParams[i]);
+
+				os_timer_arm(&buttons[i].buttonDebounceTimer, BUTTON_PRESS_DEBOUNCE_MS, 0);
 			}
 
 			// This is negative edge interrupt, so the button was just let go
 			else{
 				os_printf("ISR: Got negEdge interrupt on button%d\n", i+1);
 				// store the current index in a global var so we can access it from timeout function
-				buttonDebounceIndexParam = i;
-				os_timer_setfn(&butttonDebounceTimer, (os_timer_func_t *)buttonDebounceCallback, &buttonDebounceIndexParam);
-				os_timer_arm(&butttonDebounceTimer, 800, 0);
+				buttonDebounceIndexParams[i] = i;
+				os_timer_setfn(&buttons[i].buttonDebounceTimer,
+								(os_timer_func_t *)buttonDebounceCallback,
+								&buttonDebounceIndexParams[i]);
+
+				os_timer_arm(&buttons[i].buttonDebounceTimer, BUTTON_DEPRESS_DEBOUNCE_MS, 0);
 			}
 
 			// we rule out the notion of two button interrupts generated at once
@@ -130,7 +139,7 @@ void ICACHE_FLASH_ATTR initButtons(void){
 
 	ETS_GPIO_INTR_ENABLE();
 }
-
+/*
 void ICACHE_FLASH_ATTR timerCallback(void)
 {
 	static int lastSetting = 1;
@@ -156,4 +165,4 @@ void ICACHE_FLASH_ATTR stopBlinkTimer(void)
 {
     os_timer_disarm(&link_led_timer);
     //GPIO_OUTPUT_SET(GPIO_ID_PIN(BUTTON1_LED_IO_NUM), 0);
-}
+}*/

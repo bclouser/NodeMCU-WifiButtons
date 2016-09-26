@@ -25,6 +25,8 @@ static void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status)
 {
     if (status == STATION_GOT_IP) {
         os_printf("Wifi Connected!\r\n");
+        // led 1 means we got an ip address connected
+        setLed(e_ledNum1, 100);
         MQTT_Connect(&mqttClient);
     }
     else {
@@ -35,13 +37,12 @@ static void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args)
 {
     MQTT_Client* client = (MQTT_Client*)args;
     os_printf("MQTT: Connected\r\n");
-    MQTT_Subscribe(client, "/mqtt/topic/0", 0);
-    MQTT_Subscribe(client, "/mqtt/topic/1", 1);
-    MQTT_Subscribe(client, "/mqtt/topic/2", 2);
+    MQTT_Subscribe(client, "/wifiButtons_SOMEHASH", 0);
 
-    MQTT_Publish(client, "/mqtt/topic/0", "hello0", 6, 0, 0);
-    MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
-    MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
+    MQTT_Publish(client, "/device/heartbeat", "hello2", 6, 2, 0);
+    
+    // led 4 means we got mqtt connected
+    setLed(e_ledNum4, 100);
 }
 
 static void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args)
@@ -114,12 +115,14 @@ static void ICACHE_FLASH_ATTR app_init(void)
     // Init pwm modules which control the servo
     os_printf("Initializing LEDS\n");
     initLeds();
-    //setLed(e_ledNum2, 40);
 
     os_printf("Initializing buttons\n");
     initButtons();
-    //startBlinkTimer();
-    //setLed(e_ledNum2, 0);
+
+    setLed(e_ledNum1, 0);
+    setLed(e_ledNum2, 0);
+    setLed(e_ledNum3, 0);
+    setLed(e_ledNum4, 0);
 }
 
 void ICACHE_FLASH_ATTR user_init(void)
