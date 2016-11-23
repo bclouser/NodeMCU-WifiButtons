@@ -1,4 +1,6 @@
 #include <c_types.h>
+#include "ets_sys.h"
+#include "os_type.h"
 #include "osapi.h"
 #include "led.h"
 #include "math.h"
@@ -10,15 +12,27 @@
 /* PERIOD * 1000/45 was a hard to find value that maxes out the duty cycle */    
 #define MAXDUTY PERIOD * 1000/45
 
+struct LedInfo {
+	LedNumEnum num;
+	bool ascending;
+	int percent;
+	os_timer_t timer;
+};
+
+LOCAL struct LedInfo leds[e_numLeds] = {0};
+
 bool ICACHE_FLASH_ATTR setLed(LedNumEnum ledNum, uint8 dutyPercent)
 {
+	if(ledNum < 0 || ledNum > e_numLeds){
+		return false;
+	}
 	// First verify that duty is within acceptable range
 	// For now, we error out, in the future we could clip to min, max
 	if( (dutyPercent < 0) || (dutyPercent > 100) ){
 		return false;
 	}
 
-	os_printf("Setting LED %d\n", ledNum);
+	//os_printf("Setting LED %d\n", ledNum);
 	// need to convert percentage to actual duty value
 
 	double decimalPercent = ((double)dutyPercent)/100;
@@ -31,8 +45,51 @@ bool ICACHE_FLASH_ATTR setLed(LedNumEnum ledNum, uint8 dutyPercent)
 	pwm_start(); // start must be called after every change
 }
 
+LOCAL void ICACHE_FLASH_ATTR ledBreath_cb(struct LedInfo* led)
+{
+	if(led->ascending && (led->percent >= 100))
+	{
+		// Currently ascending and reached top. Change direction
+		led->ascending = false;
+	}
+	else if(!led->ascending && (led->percent <= 0))
+	{
+		// Currently descending and at 0. Change direction
+		led->ascending = true;
+	}
+	else
+	{
+		setLed(led->num, led->percent);
+		if(led->ascending)
+		{
+			++led->percent;
+		}
+		else
+		{
+			--led->percent;
+		}
+	}
+}
+
+void ICACHE_FLASH_ATTR startBreath(LedNumEnum led, int initVal)
+{
+	leds[led].percent = initVal;
+	os_timer_disarm(&leds[led].timer);
+	os_timer_setfn(&leds[led].timer, (os_timer_func_t *)ledBreath_cb, &leds[led]);
+	os_timer_arm(&leds[led].timer, 30, 1);
+}
+
 void ICACHE_FLASH_ATTR initLeds()
 {
+	// initialize led info structs
+	int i = 0;
+	for(i = 0; i < e_numLeds; ++i)
+	{
+		leds[i].num = i;
+		leds[i].ascending = true;
+		leds[i].percent = 0;
+	}
+
 	os_printf("Initializing leds\n");
 
 	PIN_FUNC_SELECT(PWM_0_OUT_IO_MUX, PWM_0_OUT_IO_FUNC);

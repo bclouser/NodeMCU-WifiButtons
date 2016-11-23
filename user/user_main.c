@@ -26,7 +26,7 @@ static void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status)
     if (status == STATION_GOT_IP) {
         os_printf("Wifi Connected!\r\n");
         // led 1 means we got an ip address connected
-        setLed(e_ledNum1, 100);
+        startBreath(e_ledNum1, 0);
         MQTT_Connect(&mqttClient);
     }
     else {
@@ -41,8 +41,10 @@ static void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args)
 
     MQTT_Publish(client, "/device/heartbeat", "hello2", 6, 2, 0);
     
-    // led 4 means we got mqtt connected
-    setLed(e_ledNum4, 100);
+    // led 2 means we got mqtt connected
+    startBreath(e_ledNum2, 50);
+    startBreath(e_ledNum3, 30);
+    startBreath(e_ledNum4, 80);
 }
 
 static void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args)
@@ -92,7 +94,7 @@ static void ICACHE_FLASH_ATTR app_init(void)
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
     //print_info();
     //MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, DEFAULT_SECURITY);
-    MQTT_InitConnection(&mqttClient, "192.168.0.199", 1883, 0);
+    MQTT_InitConnection(&mqttClient, "192.168.1.199", 1883, 0);
 
     //MQTT_InitClient(&mqttClient, MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, MQTT_CLEAN_SESSION);
     MQTT_InitClient(&mqttClient, "buttons", "", "", 120, 1);
@@ -109,21 +111,25 @@ static void ICACHE_FLASH_ATTR app_init(void)
     // Initialize the GPIO subsystem.
     // Apparently this just needs to be called. Odd
     gpio_init();
-
-    WIFI_Connect(WIFI_SSID, WIFI_PASSWD, wifiConnectCb);
-
+    
     // Init pwm modules which control the servo
     os_printf("Initializing LEDS\n");
     initLeds();
-
-    os_printf("Initializing buttons\n");
-    initButtons();
-
     setLed(e_ledNum1, 0);
     setLed(e_ledNum2, 0);
     setLed(e_ledNum3, 0);
     setLed(e_ledNum4, 0);
+    
+    
+
+    WIFI_Connect(WIFI_SSID, WIFI_PASSWD, wifiConnectCb);
+
+    os_printf("Initializing buttons\n");
+    initButtons();
 }
+
+
+  
 
 void ICACHE_FLASH_ATTR user_init(void)
 {

@@ -11,7 +11,6 @@
 #define BUTTON_DEPRESS_DEBOUNCE_MS 400
 
 
-//LOCAL os_timer_t butttonDebounceTimer;
 static uint8 buttonDebounceIndexParams[NUMBER_OF_BUTTONS] = {0};
 
 // Topics and messages into predefined arrays so we don't have to churn
