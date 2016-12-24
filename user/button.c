@@ -50,7 +50,16 @@ void ICACHE_FLASH_ATTR buttonDebounceCallback(uint8* buttonIndex){
 	if (GPIO_INPUT_GET(GPIO_ID_PIN(buttons[*buttonIndex].ioNum)) == 1 ) {
 		//os_printf("DEBOUNCE: PIN%d HIGH\n", *buttonIndex+1);
 		// each button index correlates to a topic
-		publishMessage(topics[*buttonIndex], toggleCommandStr, messageLen);
+		if(*buttonIndex == 3)
+		{
+			publishMessage(topics[0], toggleCommandStr, messageLen);
+			publishMessage(topics[1], toggleCommandStr, messageLen);
+			publishMessage(topics[2], toggleCommandStr, messageLen);
+		}
+		else if(*buttonIndex == 0)
+		{
+			publishMessage("/powerStrip_SOMEHASH", "{\"command\":2,\"plugNum\":0}", 32);
+		}
 
 		// Now we want to be notified when the button is released
 		// Setup an interrupt for falling edge to detect once we come off the button 
