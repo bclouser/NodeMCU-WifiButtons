@@ -83,33 +83,30 @@ bool ICACHE_FLASH_ATTR handleMessage(char* messageBuf, uint32_t len)
 				cmdKeyLen = jsonparse_copy_value(&js, buf, 32);
 				// dirty hack to convert last character to integer (ascii only)
 				buttonNum = (int)(buf[10-1] - 48);
-				os_printf("Command Key received: %s. Length = %d, number = %d\n", buf, cmdKeyLen, buttonNum);
+				//os_printf("Command Key received: %s. Length = %d, number = %d\n", buf, cmdKeyLen, buttonNum);
 
 				type = jsonparse_next(&js);
 				// ok, so now look at the value
 				type = jsonparse_next(&js);
 				if( type == JSON_TYPE_STRING){
 					jsonparse_copy_value(&js, buf, 32);
-					os_printf("Here is the value: %s\n", buf);
 				}
 				else if(type == JSON_TYPE_INT || JSON_TYPE_NUMBER){
 					jsonparse_copy_value(&js, buf, 32);
-					os_printf("Here is the value: %s\n", buf);
-					uint8 dutyPercent = jsonparse_get_value_as_int(&js);
-					os_printf("Setting dutyPercent to be %d\n", dutyPercent);
+					uint8 onOffToggle = jsonparse_get_value_as_int(&js);
 
 					switch(buttonNum){
 						case 1:
-							setLed(e_ledNum1, dutyPercent);
+							enableDisableLed(e_ledNum1, onOffToggle);
 							break;
 						case 2:
-							setLed(e_ledNum2, dutyPercent);
+							enableDisableLed(e_ledNum2, onOffToggle);
 							break;
 						case 3:
-							setLed(e_ledNum3, dutyPercent);
+							enableDisableLed(e_ledNum3, onOffToggle);
 							break;
 						case 4:
-							setLed(e_ledNum4, dutyPercent);
+							enableDisableLed(e_ledNum4, onOffToggle);
 							break;
 						default:
 							os_printf("Bad value parsed for button value\n");

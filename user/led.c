@@ -16,10 +16,45 @@ struct LedInfo {
 	LedNumEnum num;
 	bool ascending;
 	int percent;
+	bool enabled;
 	os_timer_t timer;
 };
 
 LOCAL struct LedInfo leds[e_numLeds] = {0};
+
+bool ICACHE_FLASH_ATTR enableDisableLed(LedNumEnum ledNum, uint8 onOffToggle)
+{
+	if(ledNum < 0 || ledNum > e_numLeds){
+		return false;
+	}
+	// First verify that duty is within acceptable range
+	// For now, we error out, in the future we could clip to min, max
+	if( (onOffToggle < 0) || (onOffToggle > 100)){
+		return false;
+	}
+
+	switch(onOffToggle)
+	{
+		case 0:
+			leds[ledNum].enabled = false;
+			setLed(ledNum, 0);
+			break;
+		case 1:
+			leds[ledNum].enabled = true;
+			setLed(ledNum, 0);
+			break;
+		case 2:
+			if(leds[ledNum].enabled)
+			{
+				setLed(ledNum, 0);
+			}
+			leds[ledNum].enabled = !leds[ledNum].enabled;
+			break;
+		default:
+			os_printf("Bad value recieved for onOffToggle should be 0, 1, or 2. Got: %u\n", onOffToggle);
+			break;
+	}
+}
 
 bool ICACHE_FLASH_ATTR setLed(LedNumEnum ledNum, uint8 dutyPercent)
 {
@@ -58,15 +93,19 @@ LOCAL void ICACHE_FLASH_ATTR ledBreath_cb(struct LedInfo* led)
 		led->ascending = true;
 	}
 	else
-	{
-		setLed(led->num, led->percent);
-		if(led->ascending)
+	{	
+		// only modify leds that are enabled
+		if(led->enabled)
 		{
-			++led->percent;
-		}
-		else
-		{
-			--led->percent;
+			setLed(led->num, led->percent);
+			if(led->ascending)
+			{
+				++led->percent;
+			}
+			else
+			{
+				--led->percent;
+			}
 		}
 	}
 }
@@ -88,6 +127,7 @@ void ICACHE_FLASH_ATTR initLeds()
 		leds[i].num = i;
 		leds[i].ascending = true;
 		leds[i].percent = 0;
+		leds[i].enabled = true;
 	}
 
 	os_printf("Initializing leds\n");
